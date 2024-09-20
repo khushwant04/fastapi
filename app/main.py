@@ -1,6 +1,6 @@
 from json import load
 from typing import Optional
-from fastapi import FastAPI , Response, status, HTTPException
+from fastapi import Depends, FastAPI , Response, status, HTTPException
 from pydantic import BaseModel
 from random import randrange
 import psycopg2
@@ -9,6 +9,13 @@ from dotenv import load_dotenv
 import os
 import time
 
+from sqlalchemy.orm import Session
+from . import models 
+from .db import engine
+from .db import get_db
+
+
+models.Base.metadata.create_all(bind=engine)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -21,6 +28,7 @@ password = os.getenv("DB_PASSWORD")
 
 
 app = FastAPI()
+
 
 class Post(BaseModel):
     title: str 
@@ -49,6 +57,11 @@ while True:
 @app.get("/")
 def index():
     return {"Message":"Server is running.."}
+
+@app.get("/sqlalchemy")
+def test_posts( db: Session = Depends(get_db)):
+    return {"status":"success"}
+    pass
 
 
 @app.get("/posts")
@@ -79,9 +92,6 @@ def get_post(id: int, response: Response):
 def delete_post(id: int):
     cursor.execute("""DELETE FROM posts WHERE id = %s""",(str(id)))
     deleted_post = cursor.fetchone()
-    # if index == None:
-    #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"post with id: {id} does not exist")
-    # # my_posts.pop(index)
     return {'message':deleted_post}
 
 @app.put("/posts/{id}")
