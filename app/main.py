@@ -63,7 +63,6 @@ def find_index_post(id):
             return i
 
 
-
 @app.get("/")
 def index():
     return {"Message":"Server is running.."}
@@ -71,20 +70,23 @@ def index():
 
 @app.get("/posts")
 def get_posts():
-    return {"data":my_posts}
+    cursor.execute("""Select * from posts""")
+    posts = cursor.fetchall()
+    return {"data":posts}
 
 
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
 def create_posts(post: Post):
-    post_dict = post.dict()
-    post_dict['id'] = randrange(0,1000000)
-    my_posts.append(post_dict)
-    return {"message": post_dict}
+    cursor.execute("""INSERT INTO posts (title, content, published) VALUES(%s,%s,%s) RETURNING * """, (post.title, post.content, post.published))
+    new_post = cursor.fetchone()
+    conn.commit()
+    return {"message": new_post}
 
 
 @app.get("/posts/{id}")
 def get_post(id: int, response: Response):
-    post = find_post(id)
+    cursor.execute(f"""SELECT * FROM posts WHERE id = %s""",(str(id)))
+    post = cursor.fetchone()
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with {id} not found")
@@ -92,20 +94,17 @@ def get_post(id: int, response: Response):
 
 @app.delete("/posts/{id}")
 def delete_post(id: int):
-    index = find_index_post(id)
-    if index == None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"post with id: {id} does not exist")
-    my_posts.pop(index)
-    return {'message':"Post was deleted"}
+    cursor.execute("""DELETE FROM posts WHERE id = %s""",(str(id)))
+    deleted_post = cursor.fetchone()
+    # if index == None:
+    #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"post with id: {id} does not exist")
+    # # my_posts.pop(index)
+    return {'message':deleted_post}
 
 @app.put("/posts/{id}")
 def update_post(id: int, post: Post):
-    index = find_index_post(id)
-    if index == None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"post with id: {id} does not exist")
-    
-    post_dict = post.dict()
-    post_dict['id'] = id
-    my_posts[index] = post_dict
-    return {"message": "Updated Post"}
+    cursor.execute("""UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING * """, (post.title, post.content, post.published, id))
+    updated_post = cursor.fetchone()
+    conn.commit()
+    return {"message": updated_post}
 
