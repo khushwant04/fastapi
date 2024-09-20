@@ -21,7 +21,6 @@ password = os.getenv("DB_PASSWORD")
 
 app = FastAPI()
 
-
 class Post(BaseModel):
     title: str 
     content: str
@@ -44,23 +43,6 @@ while True:
         print("Connecting to database failed")
         print("Error: ", error)
         time.sleep(2)
-
-
-my_posts = [
-    {"title":"title of post 1", "content":"content of post 1", "id":1},
-    {"fav foods":"Bhindi", "Content":"I like Bhindi", "id":2}
-]
-
-
-def find_post(id):
-    for p in my_posts:
-        if p["id"] == id:
-            return p
-
-def find_index_post(id):
-    for i, p in enumerate(my_posts):
-        if p["id"] == id:
-            return i
 
 
 @app.get("/")
